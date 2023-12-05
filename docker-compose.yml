@@ -1,0 +1,13 @@
+version: '3'
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - CLIENT_ID=753855399663-4cm6h9lbd422guc4gm1cgv0fru7mt91a.apps.googleusercontent.com
+      - CLIENT_SECRET=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
+    volumes:
+      - ./app:/app
+
+    network_mode: "host"

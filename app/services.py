@@ -4,9 +4,9 @@ import datetime
 from google_auth_oauthlib.flow import Flow, InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
+from fastapi.responses import HTMLResponse, RedirectResponse
 from google.auth.transport.requests import Request
-
-import webbrowser
+import requests
 
 
 
@@ -32,8 +32,9 @@ def Create_Service(client_secret_file, api_name, api_version, *scopes):
             cred.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_FILE, SCOPES)
-            cred = flow.run_local_server(host='localhost', port=8080, authorization_prompt_message='Please visit this URL: {url}', success_message='The auth flow is complete; you may close this window.', open_browser=False)
+            cred = flow.run_local_server(host='localhost', port=8080, open_browser=False)
             
+            # auth_url, _ = flow.authorization_url(prompt='select_account')
 
         with open(pickle_file, 'wb') as token:
             pickle.dump(cred, token)
@@ -46,8 +47,4 @@ def Create_Service(client_secret_file, api_name, api_version, *scopes):
         print('Unable to connect.')
         print(e)
         return None
-
-def convert_to_RFC_datetime(year=1900, month=1, day=1, hour=0, minute=0):
-    dt = datetime.datetime(year, month, day, hour, minute, 0).isoformat() + 'Z'
-    return dt
 

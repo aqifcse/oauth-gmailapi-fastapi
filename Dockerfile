@@ -3,7 +3,7 @@ FROM python:3
 
 EXPOSE 8000
 ENV PYTHONUNBUFFERED True
-ENV GOOGLE_APPLICATION_CREDENTIALS="/app/credentials.json"
+# ENV GOOGLE_APPLICATION_CREDENTIALS="/app/credentials.json"
 
 RUN apt-get update && apt-get install -y libpq-dev build-essential
  

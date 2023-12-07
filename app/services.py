@@ -1,22 +1,42 @@
 import pickle
 import os
 import datetime
+from fastapi import Request
 from google_auth_oauthlib.flow import Flow, InstalledAppFlow
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
-from fastapi.responses import HTMLResponse, RedirectResponse
-from google.auth.transport.requests import Request
-import requests
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+import httplib2
+import os
+import oauth2client
+from oauth2client import client, tools, file
+import base64
+
+
+def get_credentials(client_secret_file, application_name, *scopes):
+    home_dir = os.path.expanduser('~')
+    credential_dir = 'app/credentials/'
+    if not os.path.exists(credential_dir):
+        os.makedirs(credential_dir)
+    credential_path = os.path.join(credential_dir,
+                                   'access-refresh-token.json')
+    store = oauth2client.file.Storage(credential_path)
+    credentials = store.get()
+    if not credentials or credentials.invalid:
+        flow = client.flow_from_clientsecrets(client_secret_file, scopes)
+        flow.user_agent = application_name
+        credentials = tools.run_flow(flow, store)
+        print('Storing credentials to ' + credential_path)
+    return credentials
 
 
 
-def Create_Service(client_secret_file, api_name, api_version, *scopes):
-    print(client_secret_file, api_name, api_version, scopes, sep='-')
+def create_service_with_client_secret(client_secret_file, application_name, api_name, api_version, *scopes):
     CLIENT_SECRET_FILE = client_secret_file
+    APPLICATION_NAME = application_name
     API_SERVICE_NAME = api_name
     API_VERSION = api_version
     SCOPES = [scope for scope in scopes[0]]
-    print(SCOPES)
 
     cred = None
 
@@ -27,24 +47,42 @@ def Create_Service(client_secret_file, api_name, api_version, *scopes):
         with open(pickle_file, 'rb') as token:
             cred = pickle.load(token)
 
-    if not cred or not cred.valid:
+    if not cred or cred.invalid:
         if cred and cred.expired and cred.refresh_token:
             cred.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_FILE, SCOPES)
-            cred = flow.run_local_server(host='localhost', port=8080, open_browser=False)
-            
-            # auth_url, _ = flow.authorization_url(prompt='select_account')
+            # flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_FILE, SCOPES)
+            # cred = flow.run_local_server(host='localhost', port=8080, open_browser=False)
+
+            # Tell the user to go to the authorization URL.
+            # auth_url, _ = flow.authorization_url(prompt='consent')
+
+            cred = get_credentials(CLIENT_SECRET_FILE, APPLICATION_NAME, SCOPES)
 
         with open(pickle_file, 'wb') as token:
             pickle.dump(cred, token)
 
     try:
         service = build(API_SERVICE_NAME, API_VERSION, credentials=cred)
-        print(API_SERVICE_NAME, 'service created successfully')
         return service
     except Exception as e:
-        print('Unable to connect.')
-        print(e)
         return None
+
+# Need a GSUITE Admin created service account for using this function. please check the details - https://developers.google.com/identity/protocols/oauth2/service-account#delegatingauthority
+def create_service_with_service_account(client_secret_file, api_name, api_version, *scopes):
+    SERVICE_ACCOUNT_CREDENTIALS_JSON_PATH = client_secret_file
+    API_SERVICE_NAME = api_name
+    API_VERSION = api_version
+    SCOPES = [scope for scope in scopes[0]]
+
+    credentials = service_account.Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_CREDENTIALS_JSON_PATH,
+        SCOPES
+    )
+
+    del_credentials = credentials.with_subject('xyz@example.com')
+
+    service = build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
+
+    return service 
 

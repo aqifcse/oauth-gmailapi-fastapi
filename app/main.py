@@ -1,10 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks
 from .services import create_service_with_client_secret, create_service_with_service_account
 import base64
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from fastapi.middleware.cors import CORSMiddleware
 from .expired_date import convert_iso_to_dhaka_time
+from typing import Optional
 
 import bcrypt
 #the following line of code are to import the user in our model and schema
@@ -42,8 +43,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def send_email_background(user: User):
+    
+    # Send Mail
+    service= create_service_with_client_secret(CLIENT_SECRET_FILE, APPLICATION_NAME, API_NAME, API_VERSION, SCOPES)
+    # service = create_service_with_service_account(CLIENT_SECRET_FILE, API_NAME, API_VERSION, SCOPES)
+
+    emailMsg = 'Welcome!!' + user.full_name
+    mimeMessage = MIMEMultipart()
+    mimeMessage['to'] = user.email
+    mimeMessage['subject'] = 'Your account has been created!!!'
+    mimeMessage.attach(MIMEText(emailMsg, 'plain'))
+    raw_string = base64.urlsafe_b64encode(mimeMessage.as_bytes()).decode()
+
+    return service.users().messages().send(userId='me', body={'raw': raw_string}).execute()
+
+    
+    
+    
+
 @app.post("/register")
-async def create_user(user: User):
+async def create_user(user: User, background_tasks: BackgroundTasks):
 
   # creating user in the database
   hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt())
@@ -52,19 +72,10 @@ async def create_user(user: User):
   db.commit()
   db.refresh(user)
 
-  # Send Mail
-  service= create_service_with_client_secret(CLIENT_SECRET_FILE, APPLICATION_NAME, API_NAME, API_VERSION, SCOPES)
-  # service = create_service_with_service_account(CLIENT_SECRET_FILE, API_NAME, API_VERSION, SCOPES)
-
-  emailMsg = 'Welcome!!' + user.full_name
-  mimeMessage = MIMEMultipart()
-  mimeMessage['to'] = user.email
-  mimeMessage['subject'] = 'Your account has been created!!!'
-  mimeMessage.attach(MIMEText(emailMsg, 'plain'))
-  raw_string = base64.urlsafe_b64encode(mimeMessage.as_bytes()).decode()
-
-  # Send mail using the service 
-  service.users().messages().send(userId='me', body={'raw': raw_string}).execute()
+  background_tasks.add_task(
+    send_email_background, user
+  )
+  
 
   expired_date = convert_iso_to_dhaka_time()
 

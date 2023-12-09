@@ -63,8 +63,8 @@ def create_service_with_client_secret(client_secret_file, application_name, api_
         raise HTTPException(status_code=400, detail=str(e))
 
 # Need a GSUITE Admin created service account for using this function. please check the details - https://developers.google.com/identity/protocols/oauth2/service-account#delegatingauthority
-def create_service_with_service_account(client_secret_file, api_name, api_version, *scopes):
-    SERVICE_ACCOUNT_CREDENTIALS_JSON_PATH = client_secret_file
+def create_service_with_service_account(service_account_secret_file, api_name, api_version, *scopes):
+    SERVICE_ACCOUNT_CREDENTIALS_JSON_PATH = service_account_secret_file
     API_SERVICE_NAME = api_name
     API_VERSION = api_version
     SCOPES = [scope for scope in scopes[0]]

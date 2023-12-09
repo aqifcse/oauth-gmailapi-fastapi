@@ -19,6 +19,7 @@ Base.metadata.create_all(bind=engine)
 # Dependency
 
 CLIENT_SECRET_FILE = 'app/credentials/desktop_client_secret.json'
+SERVICE_ACCOUNT_CREDENTIAL_FILE = 'app/credentials/service_account_credentials.json'
 APPLICATION_NAME = 'fastapi-registration'
 API_NAME = 'gmail'
 API_VERSION = 'v1'
@@ -32,6 +33,7 @@ origins = [
 ]
 
 app = FastAPI()
+db = SessionLocal()
 
 app.add_middleware(
     CORSMiddleware,
@@ -54,7 +56,7 @@ def send_email_background(user: User):
     service= create_service_with_client_secret(CLIENT_SECRET_FILE, APPLICATION_NAME, API_NAME, API_VERSION, SCOPES)
     
     # For Service account 
-    # service = create_service_with_service_account(CLIENT_SECRET_FILE, API_NAME, API_VERSION, SCOPES)
+    # service = create_service_with_service_account(SERVICE_ACCOUNT_CREDENTIAL_FILE, API_NAME, API_VERSION, SCOPES)
 
     return service.users().messages().send(userId='me', body={'raw': raw_string}).execute()
 
@@ -67,7 +69,7 @@ def send_email_background_during_technical_difficulty(user):
     service= create_service_with_client_secret(CLIENT_SECRET_FILE, APPLICATION_NAME, API_NAME, API_VERSION, SCOPES)
     
     # For Service account 
-    # service = create_service_with_service_account(CLIENT_SECRET_FILE, API_NAME, API_VERSION, SCOPES)
+    # service = create_service_with_service_account(SERVICE_ACCOUNT_CREDENTIAL_FILE, API_NAME, API_VERSION, SCOPES)
 
     emailMsg = "Sorry, Due to some technical difficulty your registration was not successful. Please re-register"
     mimeMessage = MIMEMultipart()
@@ -78,13 +80,7 @@ def send_email_background_during_technical_difficulty(user):
 
     return service.users().messages().send(userId='me', body={'raw': raw_string}).execute()
   except Exception as e:
-    raise HTTPException(status_code=400, detail=str(e))
-
-
-
-    
-    
-db = SessionLocal() 
+    raise HTTPException(status_code=400, detail=str(e)) 
 
 def database_user_create(user: User):
  

@@ -15,6 +15,7 @@ sudo docker-compose up --build
 ```
 
 Way 2: Gmail Account mail sending
+-------------------------------------
 1. Run the app/first_time.py with the following command
 ```
 virtualenv venv

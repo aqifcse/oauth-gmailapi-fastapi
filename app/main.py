@@ -98,7 +98,7 @@ def database_user_create(user: User):
   if user.id:
     return user
   else:
-    return False
+    raise HTTPException(status_code=500, detail="Failed to create user")
    
    
 

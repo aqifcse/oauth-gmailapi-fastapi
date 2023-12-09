@@ -1,7 +1,6 @@
 import pickle
 import os
 from fastapi import HTTPException, Request
-from google_auth_oauthlib.flow import Flow, InstalledAppFlow
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -77,7 +76,7 @@ def create_service_with_service_account(client_secret_file, api_name, api_versio
 
     del_credentials = credentials.with_subject('xyz@example.com')
 
-    service = build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
+    service = build(API_SERVICE_NAME, API_VERSION, credentials=del_credentials)
 
     return service 
 

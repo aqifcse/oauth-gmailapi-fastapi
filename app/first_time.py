@@ -1,15 +1,6 @@
-import httplib2
 import os
 import oauth2client
 from oauth2client import client, tools, file
-import base64
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from apiclient import errors, discovery
-import mimetypes
-from email.mime.image import MIMEImage
-from email.mime.audio import MIMEAudio
-from email.mime.base import MIMEBase
 
 SCOPES = 'https://mail.google.com/'
 CLIENT_SECRET_FILE = 'app/credentials/desktop_client_secret.json'

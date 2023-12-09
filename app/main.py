@@ -42,7 +42,7 @@ app.add_middleware(
 )
 
 def send_email_background(user: User):
-    
+  if user:  
     emailMsg = 'Welcome!!' + user.full_name
     mimeMessage = MIMEMultipart()
     mimeMessage['to'] = user.email
@@ -61,21 +61,44 @@ def send_email_background(user: User):
 
     except Exception as e:
       raise HTTPException(status_code=400, detail=str(e))
+  else:
+    try:
+      # Send Mail
+      service= create_service_with_client_secret(CLIENT_SECRET_FILE, APPLICATION_NAME, API_NAME, API_VERSION, SCOPES)
+      
+      # For Service account 
+      # service = create_service_with_service_account(CLIENT_SECRET_FILE, API_NAME, API_VERSION, SCOPES)
+
+      emailMsg = 'Sorry ' + user.full_name + ", Due to some technical difficulty your registration was not successful. Please re-register"
+      mimeMessage = MIMEMultipart()
+      mimeMessage['to'] = user.email
+      mimeMessage['subject'] = 'Your registration is not successful'
+      mimeMessage.attach(MIMEText(emailMsg, 'plain'))
+      raw_string = base64.urlsafe_b64encode(mimeMessage.as_bytes()).decode()
+
+      return service.users().messages().send(userId='me', body={'raw': raw_string}).execute()
+    except Exception as e:
+      raise HTTPException(status_code=400, detail=str(e))
+
+
     
     
 db = SessionLocal() 
 
 def database_user_create(user: User):
-  try:
-    # creating user in the database
-    hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt())
-    user = ModelUser(username=user.username, email=user.email, password=hashed_password, full_name=user.full_name, disabled=False)
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+ 
+  # creating user in the database
+  hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt())
+  user = ModelUser(username=user.username, email=user.email, password=hashed_password, full_name=user.full_name, disabled=False)
+  db.add(user)
+  db.commit()
+  db.refresh(user)
+
+  if user.id:
     return user
-  except Exception as e:
-    raise HTTPException(status_code=400, detail=str(e))
+  else:
+    raise HTTPException(status_code=500, detail="Failed to create user")
+   
    
 
 @app.post("/register")

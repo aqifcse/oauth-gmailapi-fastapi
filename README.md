@@ -16,12 +16,12 @@ sudo docker-compose up --build
 
 Way 2: Gmail Account mail sending
 1. Run the app/first_time.py with the following command
-"""
+```
 virtualenv venv
 source venv/bin/activate
 pip install -r requirements.txt
 python app/first_time.py
-""
+```
 2. This script will pop up a google login screen asking you to give email and password only one time. Once, the login is successfull, there will be an access-refresh-token.json file will be added automatically in the app folder.
 
 3. Now you can then start the server with

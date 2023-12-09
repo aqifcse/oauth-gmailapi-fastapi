@@ -1,16 +1,13 @@
 import pickle
 import os
-import datetime
-from fastapi import Request
+from fastapi import HTTPException, Request
 from google_auth_oauthlib.flow import Flow, InstalledAppFlow
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-import httplib2
 import os
 import oauth2client
 from oauth2client import client, tools, file
-import base64
 
 
 def get_credentials(client_secret_file, application_name, *scopes):
@@ -26,7 +23,6 @@ def get_credentials(client_secret_file, application_name, *scopes):
         flow = client.flow_from_clientsecrets(client_secret_file, scopes)
         flow.user_agent = application_name
         credentials = tools.run_flow(flow, store)
-        print('Storing credentials to ' + credential_path)
     return credentials
 
 
@@ -41,7 +37,6 @@ def create_service_with_client_secret(client_secret_file, application_name, api_
     cred = None
 
     pickle_file = f'token_{API_SERVICE_NAME}_{API_VERSION}.pickle'
-    # print(pickle_file)
 
     if os.path.exists(pickle_file):
         with open(pickle_file, 'rb') as token:
@@ -66,7 +61,7 @@ def create_service_with_client_secret(client_secret_file, application_name, api_
         service = build(API_SERVICE_NAME, API_VERSION, credentials=cred)
         return service
     except Exception as e:
-        return None
+        raise HTTPException(status_code=400, detail=str(e))
 
 # Need a GSUITE Admin created service account for using this function. please check the details - https://developers.google.com/identity/protocols/oauth2/service-account#delegatingauthority
 def create_service_with_service_account(client_secret_file, api_name, api_version, *scopes):

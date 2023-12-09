@@ -1,4 +1,4 @@
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, HTTPException
 from .services import create_service_with_client_secret, create_service_with_service_account
 import base64
 from email.mime.multipart import MIMEMultipart
@@ -17,8 +17,6 @@ from .db import SessionLocal, Base, engine
 # Create tables based on the models
 Base.metadata.create_all(bind=engine)
 # Dependency
-
-db = SessionLocal()
 
 CLIENT_SECRET_FILE = 'app/credentials/desktop_client_secret.json'
 APPLICATION_NAME = 'fastapi-registration'
@@ -45,10 +43,6 @@ app.add_middleware(
 
 def send_email_background(user: User):
     
-    # Send Mail
-    service= create_service_with_client_secret(CLIENT_SECRET_FILE, APPLICATION_NAME, API_NAME, API_VERSION, SCOPES)
-    # service = create_service_with_service_account(CLIENT_SECRET_FILE, API_NAME, API_VERSION, SCOPES)
-
     emailMsg = 'Welcome!!' + user.full_name
     mimeMessage = MIMEMultipart()
     mimeMessage['to'] = user.email
@@ -56,28 +50,49 @@ def send_email_background(user: User):
     mimeMessage.attach(MIMEText(emailMsg, 'plain'))
     raw_string = base64.urlsafe_b64encode(mimeMessage.as_bytes()).decode()
 
-    return service.users().messages().send(userId='me', body={'raw': raw_string}).execute()
+    try:
+      # Send Mail
+      service= create_service_with_client_secret(CLIENT_SECRET_FILE, APPLICATION_NAME, API_NAME, API_VERSION, SCOPES)
+      
+      # For Service account 
+      # service = create_service_with_service_account(CLIENT_SECRET_FILE, API_NAME, API_VERSION, SCOPES)
 
+      return service.users().messages().send(userId='me', body={'raw': raw_string}).execute()
+
+    except Exception as e:
+      raise HTTPException(status_code=400, detail=str(e))
     
     
-    
+db = SessionLocal() 
+
+def database_user_create(user: User):
+  try:
+    # creating user in the database
+    hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt())
+    user = ModelUser(username=user.username, email=user.email, password=hashed_password, full_name=user.full_name, disabled=False)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+  except Exception as e:
+    raise HTTPException(status_code=400, detail=str(e))
+   
 
 @app.post("/register")
 async def create_user(user: User, background_tasks: BackgroundTasks):
 
   # creating user in the database
-  hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt())
-  user = ModelUser(username=user.username, email=user.email, password=hashed_password, full_name=user.full_name, disabled=False)
-  db.add(user)
-  db.commit()
-  db.refresh(user)
+  stored_user = database_user_create(user)
 
-  background_tasks.add_task(
-    send_email_background, user
-  )
-  
+  # sending email as a background task
+  try:
+    background_tasks.add_task(
+      send_email_background, stored_user
+    )
+  except Exception as e:
+    raise HTTPException(status_code=400, detail=str(e))
 
   expired_date = convert_iso_to_dhaka_time()
 
-  response = { "message":"Success!! Successfully registered. Email sending token will be expired at " + expired_date }
+  response = { "message":"Success!! Successfully registered. Welocme email sent. Email sending token will be expired at " + expired_date }
   return response

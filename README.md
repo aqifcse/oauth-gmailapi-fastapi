@@ -22,8 +22,6 @@ sudo docker-compose up --build
 
 /register api documentation can be found in http://0.0.0.0:8000/docs
 
-giving the credentials a redirecting link will show up in the terminal. click on it and mail will be sent.
-
 Way 2: Service Account
 ------------------------
 If you have a GSUITE admin credentials and the email has domain-wise delegation then place your credentials as service_account_credentials.json in the app/credentials/ folder 
